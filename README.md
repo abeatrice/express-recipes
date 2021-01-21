@@ -40,3 +40,10 @@ $ sam deploy --guided
 ```bash
 $ aws cloudformation delete-stack --stack-name <stack-name>
 ```
+
+## TODO
+ - add query search to /recipes
+ - add cors to responses
+ - expand recipe schema to include ingredients and steps
+ - add tests
+ - add cache
