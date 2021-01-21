@@ -1,0 +1,16 @@
+{
+  "name": "express-recipes",
+  "version": "1.0.0",
+  "description": "express rest api for lambda and api gateway",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Andrew Beatrice",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "serverless-http": "^2.6.1"
+  }
+}
