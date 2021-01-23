@@ -19,21 +19,24 @@ This is a REST API for [AWS Lambda](https://aws.amazon.com/lambda/) and [Api Gat
 
 ## Local Dev
 ```bash
-$ sam build
-$ sam local start-api
+# Build and Run local server
+$ make dev
 $ curl http://localhost:3000/recipes
 $ curl http://localhost:3000/recipes/{id}
-```
 
-## Get Logs
-```bash
-$ sam logs -n ListRecipesFunction --tail
+# Build Only
+$ make build
+
+# Run local server only
+$ make run
+
+# tail logs
+$ make logs
 ```
 
 ## Deploy
 ```bash
-$ sam build
-$ sam deploy --guided
+$ make deploy
 ```
 
 ## Cleanup

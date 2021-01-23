@@ -1,11 +1,9 @@
 const express = require('express')
 const router = express.Router()
-const {index, store, show, update, destroy} = require('./controller')
+const recipeRoutes = require('./routes/recipeRoutes')
+const userRoutes = require('./routes/userRoutes')
 
-router.get('/', index)
-router.post('/', store)
-router.get('/:id', show)
-router.put('/:id', update)
-router.delete('/:id', destroy)
+router.use('/recipes', recipeRoutes)
+router.use('/users', userRoutes)
 
 module.exports = router

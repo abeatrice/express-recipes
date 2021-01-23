@@ -5,6 +5,6 @@ const routes = require('./routes')
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: true}))
-app.use('/recipes', routes)
+app.use('/', routes)
 
 module.exports.lambdaHandler = serverless(app)

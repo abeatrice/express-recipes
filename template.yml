@@ -1,11 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Recipes REST API
+Description: MyHowm REST API
 Globals:
   Function:
     Timeout: 3
 Resources:
-  ExpressRecipesFunction:
+  MyHowmApiFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
@@ -15,13 +15,8 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - AmazonDynamoDBFullAccess
       Events:
-        RootPath:
-          Type: Api
-          Properties:
-            Path: /recipes
-            Method: any
         CatchAll:
           Type: Api
           Properties:
-            Path: /recipes/{proxy+}
+            Path: /{proxy+}
             Method: any
