@@ -1,13 +1,24 @@
-# AWS Lambda/API Gateway Express-http REST API
+# MyHowm REST API for AWS Lambda & API Gateway
 
-This is a REST API for [AWS Lambda](https://aws.amazon.com/lambda/) and [Api Gateway](https://aws.amazon.com/api-gateway/) 
+This is the REST API for api.myhowm.com
 
 ## External Docs
  - [express](https://expressjs.com/) for routing and middleware
+ - [AWS Lambda](https://aws.amazon.com/lambda/)
+ - [Api Gateway](https://aws.amazon.com/api-gateway/) 
  - [serverless-http](https://github.com/dougmoscrop/serverless-http) to wrap express for AWS Lambda
  - [aws sam](https://aws.amazon.com/serverless/sam/) - aws serverless application model
 
 ## API
+
+### Users
+
+| Verb  | Endpoint          | Description               |
+|:----- |:----------------- |:------------------------- |
+| POST  | /users/register   | register a new user       |
+| POST  | /users/login      | login an existing user    |
+
+### Recipes
 
 | Verb      | Endpoint      | Description               |
 |:--------- |:------------- |:----------------------    |
@@ -21,8 +32,6 @@ This is a REST API for [AWS Lambda](https://aws.amazon.com/lambda/) and [Api Gat
 ```bash
 # Build and Run local server
 $ make dev
-$ curl http://localhost:3000/recipes
-$ curl http://localhost:3000/recipes/{id}
 
 # Build Only
 $ make build
@@ -49,4 +58,3 @@ $ aws cloudformation delete-stack --stack-name <stack-name>
  - add cors to responses
  - expand recipe schema to include ingredients and steps
  - add tests
- - add cache
