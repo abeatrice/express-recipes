@@ -1,0 +1,9 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "myhowm-api"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-f471sv4i0m9c"
+s3_prefix = "myhowm-api"
+region = "us-west-1"
+capabilities = "CAPABILITY_IAM"

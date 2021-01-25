@@ -1,11 +1,11 @@
 const {DynamoDBClient, ScanCommand, PutItemCommand, GetItemCommand, DeleteItemCommand} = require('@aws-sdk/client-dynamodb')
-const ddb = new DynamoDBClient({region: 'us-east-1'})
+const ddb = new DynamoDBClient({region: 'us-west-1'})
 const {v4:uuidv4} = require('uuid')
 const Joi = require('joi')
 
 exports.index = async (req, res) => {
     const data = await ddb.send(new ScanCommand({
-        TableName: 'Recipes'
+        TableName: 'MyHowm-Recipes'
     }))
     const items = data.Items.map(item => {
         return {
@@ -41,7 +41,7 @@ exports.store = async (req, res) => {
     }
     try {
         await ddb.send(new PutItemCommand({
-            TableName: 'Recipes',
+            TableName: 'MyHowm-Recipes',
             Item: item
         }))
         res.status(201).json({
@@ -64,7 +64,7 @@ exports.store = async (req, res) => {
 exports.show = async (req, res) => {
     try {
         const data = await ddb.send(new GetItemCommand({
-            TableName: 'Recipes',
+            TableName: 'MyHowm-Recipes',
             Key: {
                 ID: {S: req.params.id}
             }
@@ -107,7 +107,7 @@ exports.update = async (req, res) => {
     }
     try {
         await ddb.send(new PutItemCommand({
-            TableName: 'Recipes',
+            TableName: 'MyHowm-Recipes',
             Item: item
         }))
         res.status(200).json({
@@ -130,7 +130,7 @@ exports.update = async (req, res) => {
 exports.destroy = async (req, res) => {
     try {
         await ddb.send(new DeleteItemCommand({
-            TableName: 'Recipes',
+            TableName: 'MyHowm-Recipes',
             Key: {
                 ID: {S: req.params.id}
             }

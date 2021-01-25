@@ -4,7 +4,7 @@
   "description": "express rest api for lambda and api gateway",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha tests/unit/"
   },
   "author": "Andrew Beatrice",
   "license": "MIT",
@@ -17,5 +17,9 @@
     "jsonwebtoken": "^8.5.1",
     "serverless-http": "^2.6.1",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^8.2.1"
   }
 }

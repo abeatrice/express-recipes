@@ -1,5 +1,5 @@
 const {DynamoDBClient, PutItemCommand, GetItemCommand} = require('@aws-sdk/client-dynamodb')
-const ddb = new DynamoDBClient({region: 'us-east-1'})
+const ddb = new DynamoDBClient({region: 'us-west-1'})
 const {v4:uuidv4} = require('uuid')
 const Joi = require('joi')
 const bcrypt = require('bcryptjs');
