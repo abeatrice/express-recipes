@@ -1,10 +1,10 @@
 const {DynamoDBClient, PutItemCommand, GetItemCommand} = require('@aws-sdk/client-dynamodb')
 const ddb = new DynamoDBClient({region: 'us-west-1'})
-const {v4:uuidv4} = require('uuid')
 const Joi = require('joi')
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const jwt_key = process.env.JWT_KEY || 'jwtkey'
+const {updateUser} = require('../models/user')
 
 exports.register = async (req, res) => {
     const body = req.body
@@ -72,9 +72,8 @@ exports.login = async (req, res) => {
             UserName: {S: value.UserName}
         }
     }))
-    // console.log(data)
     if(data.Item === undefined) {
-        res.status(404).json({
+        res.status(403).json({
             status: 'failure',
             message: 'User not found'
         })
@@ -108,5 +107,21 @@ exports.login = async (req, res) => {
             Email: data.Item.Email.S,
             Token: token
         }
+    })
+}
+
+exports.logout = async (req, res) => {
+    Tokens = JSON.parse(req.user.Tokens).filter(token => {
+        return token.Token != req.token
+    })
+    await updateUser({
+        UserName: req.user.UserName,
+        Email: req.user.Email,
+        Password: req.user.Password,
+        Tokens: Tokens,
+    })
+    res.status(200).json({
+        status: 'success',
+        message: 'user logged out'
     })
 }
