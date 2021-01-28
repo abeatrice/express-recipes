@@ -4,7 +4,7 @@ const Joi = require('joi')
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const jwt_key = process.env.JWT_KEY || 'jwtkey'
-const {updateUser} = require('../models/user')
+const {saveUser} = require('../models/user')
 
 exports.register = async (req, res) => {
     const body = req.body
@@ -111,17 +111,44 @@ exports.login = async (req, res) => {
 }
 
 exports.logout = async (req, res) => {
-    Tokens = JSON.parse(req.user.Tokens).filter(token => {
+    const Tokens = JSON.parse(req.user.Tokens).filter(token => {
         return token.Token != req.token
     })
-    await updateUser({
-        UserName: req.user.UserName,
-        Email: req.user.Email,
-        Password: req.user.Password,
-        Tokens: Tokens,
-    })
-    res.status(200).json({
-        status: 'success',
-        message: 'user logged out'
-    })
+    try {
+        await saveUser({
+            UserName: req.user.UserName,
+            Email: req.user.Email,
+            Password: req.user.Password,
+            Tokens: JSON.stringify(Tokens),
+        })
+        res.status(200).json({
+            status: 'success',
+            message: 'user logged out'
+        })
+    } catch (error) {
+        res.status(500).json({
+            status: 'failure',
+            message: 'failed to logout user'
+        })
+    }
+}
+
+exports.logoutAll = async (req, res) => {
+    try {
+        await saveUser({
+            UserName: req.user.UserName,
+            Email: req.user.Email,
+            Password: req.user.Password,
+            Tokens: JSON.stringify([]),
+        })
+        res.status(200).json({
+            status: 'success',
+            message: 'user logged out'
+        })
+    } catch (error) {
+        res.status(500).json({
+            status: 'failure',
+            message: 'failed to logout user'
+        })
+    }
 }

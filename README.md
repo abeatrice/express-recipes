@@ -11,12 +11,17 @@ This is the REST API for api.myhowm.com
 
 ## API
 
+#### Middleware
+ - auth: requires Authentication Bearer token retrived from /users/register or /users/login routes
+
 ### Users
 
-| Verb  | Endpoint          | Description               |
-|:----- |:----------------- |:------------------------- |
-| POST  | /users/register   | register a new user       |
-| POST  | /users/login      | login an existing user    |
+| Verb  | Endpoint          | Description                   | Middleware    |
+|:----- |:----------------- |:----------------------------- |-------------- |
+| POST  | /users/register   | register a new user           |               |
+| POST  | /users/login      | login an existing user        |               |
+| POST  | /users/logout     | log out user from device      | auth          |
+| POST  | /users/logoutall  | log out user from all devices | auth          |
 
 ### Recipes
 
