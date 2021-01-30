@@ -1,11 +1,11 @@
-const {DynamoDBClient, QueryCommand, PutItemCommand} = require('@aws-sdk/client-dynamodb')
+const {DynamoDBClient, QueryCommand, PutItemCommand, GetItemCommand} = require('@aws-sdk/client-dynamodb')
 const ddb = new DynamoDBClient({region:'us-west-1'})
 const TableName = 'MyHowm-Users'
 
 exports.findUser = async (UserName, token) => {
     try {
         const data = await ddb.send(new QueryCommand({
-            TableName: TableName,
+            TableName,
             KeyConditionExpression: "UserName = :UserName",
             FilterExpression: "contains (Tokens, :token)",
             ExpressionAttributeValues: {
@@ -25,10 +25,30 @@ exports.findUser = async (UserName, token) => {
     }
 }
 
+exports.getUser = async (UserName) => {
+    try {
+        const data = await ddb.send(new GetItemCommand({
+            TableName,
+            Key: { UserName: {S: UserName} }
+        }))
+        if(data.Item === undefined) {
+            throw 'User Not Found'
+        }
+        return {
+            UserName: data.Item.UserName.S,
+            Email: data.Item.Email.S,
+            Password: data.Item.Password.S,
+            Tokens: data.Item.Tokens.S
+        }
+    } catch (error) {
+        throw error
+    }
+}
+
 exports.saveUser = async (user) => {
     try {
         await ddb.send(new PutItemCommand({
-            TableName: TableName,
+            TableName,
             Item: {
                 UserName: {S: user.UserName},
                 Email: {S: user.Email},

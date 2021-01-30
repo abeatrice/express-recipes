@@ -1,19 +1,16 @@
-const {DynamoDBClient, PutItemCommand, GetItemCommand} = require('@aws-sdk/client-dynamodb')
-const ddb = new DynamoDBClient({region: 'us-west-1'})
 const Joi = require('joi')
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const jwt_key = process.env.JWT_KEY || 'jwtkey'
-const {saveUser} = require('../models/user')
+const {getUser, saveUser} = require('../models/user')
 
 exports.register = async (req, res) => {
-    const body = req.body
-    const schema = Joi.object({
+    // validate request body input
+    const {error, value} = Joi.object({
         UserName: Joi.string().required(),
         Email: Joi.string().required(),
         Password: Joi.string().required()
-    })
-    const {error, value} = schema.validate(body)
+    }).validate(req.body)
     if(error !== undefined) {
         res.status(400).json({
             status: 'failure',
@@ -21,30 +18,29 @@ exports.register = async (req, res) => {
         })
         return
     }
+
+    // TODO validate unique UserName and Email
+
+    // create user
     const hashed_password = await bcrypt.hash(value.Password, 8)
     const token = jwt.sign({ID: value.UserName}, jwt_key)
-    const tokens = JSON.stringify([{Token: token}])
-    const user = {
-        UserName: {S: value.UserName},
-        Email: {S: value.Email},
-        Password: {S: hashed_password},
-        Tokens: {S:tokens}
-    }
     try {
-        await ddb.send(new PutItemCommand({
-            TableName: 'MyHowm-Users',
-            Item: user
-        }))
+        await saveUser({
+            UserName: value.UserName,
+            Email: value.Email,
+            Password: hashed_password,
+            Tokens: JSON.stringify([{Token: token}])
+        })
         res.status(201).json({
             status: 'success',
             data: {
-                UserName: user.UserName.S,
-                Email: user.Email.S,
+                UserName: value.UserName,
+                Email: value.Email,
                 Token: token
             }
         })
     } catch (error) {
-        console.log(error)
+        console.log('myhowm-api usersController register: ' + error)
         res.status(500).json({
             status: 'failure',
             message: 'failed to register user'
@@ -53,12 +49,11 @@ exports.register = async (req, res) => {
 }
 
 exports.login = async (req, res) => {
-    const body = req.body
-    const schema = Joi.object({
+    // validate request body
+    const {error, value} = Joi.object({
         UserName: Joi.string().required(),
         Password: Joi.string().required()
-    })
-    const {error, value} = schema.validate(body)
+    }).validate(req.body)
     if(error !== undefined) {
         res.status(400).json({
             status: 'failure',
@@ -66,20 +61,22 @@ exports.login = async (req, res) => {
         })
         return
     }
-    const data = await ddb.send(new GetItemCommand({
-        TableName: 'MyHowm-Users',
-        Key: {
-            UserName: {S: value.UserName}
-        }
-    }))
-    if(data.Item === undefined) {
+
+    // get user
+    let user = {}
+    try {
+        user = await getUser(value.UserName)
+    } catch (error) {
+        console.log('myhowm-api usersController login: ' + error)
         res.status(403).json({
             status: 'failure',
             message: 'User not found'
         })
         return
     }
-    const isPasswordMatch = await bcrypt.compare(value.Password, data.Item.Password.S);
+
+    // verify password
+    const isPasswordMatch = await bcrypt.compare(value.Password, user.Password);
     if(!isPasswordMatch) {
         res.status(401).json({
             status: 'failure',
@@ -87,27 +84,36 @@ exports.login = async (req, res) => {
         })
         return
     }
-    const token = jwt.sign({ID: value.UserName}, jwt_key)
-    let current_tokens = JSON.parse(data.Item.Tokens.S)
+
+    // generate new jwt token
+    const token = jwt.sign({ID: user.UserName}, jwt_key)
+    let current_tokens = JSON.parse(user.Tokens)
     current_tokens.push({Token: token})
     const tokens = JSON.stringify(current_tokens)
-    await ddb.send(new PutItemCommand({
-        TableName: 'MyHowm-Users',
-        Item: {
-            UserName: {S: data.Item.UserName.S},
-            Email: {S: data.Item.Email.S},
-            Password: {S: data.Item.Password.S},
-            Tokens: {S:tokens}
-        }
-    }))
-    res.status(200).json({
-        status: 'success',
-        data: {
-            UserName: data.Item.UserName.S,
-            Email: data.Item.Email.S,
-            Token: token
-        }
-    })
+
+    // save user's new tokens
+    try {
+        await saveUser({
+            UserName: user.UserName,
+            Email: user.Email,
+            Password: user.Password,
+            Tokens: tokens
+        })
+        res.status(200).json({
+            status: 'success',
+            data: {
+                UserName: user.UserName,
+                Email: user.Email,
+                Token: token
+            }
+        })
+    } catch (error) {
+        console.log('myhowm-api usersController login: ' + error)
+        res.status(500).json({
+            status: 'failure',
+            message: 'failed to login user'
+        })
+    }
 }
 
 exports.logout = async (req, res) => {
