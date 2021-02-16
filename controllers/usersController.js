@@ -116,6 +116,17 @@ exports.login = async (req, res) => {
     }
 }
 
+exports.me = async (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        data: {
+            UserName: req.user.UserName,
+            Email: req.user.Email,
+            Token: req.token
+        }
+    })
+}
+
 exports.logout = async (req, res) => {
     const Tokens = JSON.parse(req.user.Tokens).filter(token => {
         return token.Token != req.token
