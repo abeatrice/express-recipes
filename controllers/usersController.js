@@ -8,9 +8,9 @@ exports.register = async (req, res) => {
     // validate request body input
     const {error, value} = Joi.object({
         UserName: Joi.string().required(),
-        Email: Joi.string().required(),
+        Email: Joi.string().email().required(),
         Password: Joi.string().required()
-    }).validate(req.body)
+    }).validate(req.body, {abortEarly: false})
     if(error !== undefined) {
         res.status(400).json({
             status: 'failure',
@@ -19,7 +19,20 @@ exports.register = async (req, res) => {
         return
     }
 
-    // TODO validate unique UserName and Email
+    let user = null
+    try {
+        user = await getUser(value.UserName)
+    } catch (error) {
+        //verified no user by username
+    }
+
+    if(user !== null) {
+        res.status(400).json({
+            status: 'failure',
+            message: 'This User Name already exists.'
+        })
+        return
+    }
 
     // create user
     const hashed_password = await bcrypt.hash(value.Password, 8)
