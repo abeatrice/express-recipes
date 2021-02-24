@@ -6,7 +6,7 @@ const TableName = 'MyHowm-Recipes'
 
 exports.index = async (req, res) => {
     const data = await ddb.send(new QueryCommand({
-        ProjectionExpression: "RecipeName, Description, Ingredients, Instructions",
+        ProjectionExpression: "RecipeName, Description, Ingredients, Instructions, ImgSrc",
         TableName,
         KeyConditionExpression: "UserName = :UserName",
         ExpressionAttributeValues: {
@@ -23,6 +23,7 @@ exports.index = async (req, res) => {
             Description: item.Description.S,
             Instructions: item.Instructions.L.map(i => i.S),
             Ingredients,
+            ImgSrc: item.ImgSrc.S,
         }
     })
     res.status(200).json({
