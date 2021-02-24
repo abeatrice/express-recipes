@@ -1,17 +1,29 @@
-const {DynamoDBClient, ScanCommand, PutItemCommand, GetItemCommand, DeleteItemCommand} = require('@aws-sdk/client-dynamodb')
+const {DynamoDBClient, QueryCommand, PutItemCommand, GetItemCommand, DeleteItemCommand} = require('@aws-sdk/client-dynamodb')
 const ddb = new DynamoDBClient({region: 'us-west-1'})
 const {v4:uuidv4} = require('uuid')
 const Joi = require('joi')
+const TableName = 'MyHowm-Recipes'
 
 exports.index = async (req, res) => {
-    const data = await ddb.send(new ScanCommand({
-        TableName: 'MyHowm-Recipes'
+    const data = await ddb.send(new QueryCommand({
+        ProjectionExpression: "RecipeName, Description, Ingredients, Instructions, ImgSrc",
+        TableName,
+        KeyConditionExpression: "UserName = :UserName",
+        ExpressionAttributeValues: {
+            ":UserName": {S: req.user.UserName}
+        }
     }))
     const items = data.Items.map(item => {
+        let Ingredients = {}
+        for (const ingredient in item.Ingredients.M) {
+            Ingredients[ingredient] = item.Ingredients.M[ingredient].S
+        }
         return {
-            ID: item.ID.S,
-            Name: item.Name.S,
+            RecipeName: item.RecipeName.S,
             Description: item.Description.S,
+            Instructions: item.Instructions.L.map(i => i.S),
+            Ingredients,
+            ImgSrc: item.ImgSrc.S,
         }
     })
     res.status(200).json({
