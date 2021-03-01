@@ -4,7 +4,7 @@ const {index, store, show, update, destroy} = require('../controllers/recipesCon
 const {auth} = require('../middleware/auth')
 
 router.get('/', auth, index)
-router.post('/', auth, store)
+router.post('/', store)
 router.get('/:id', auth, show)
 router.put('/:id', auth, update)
 router.delete('/:id', auth, destroy)

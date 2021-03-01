@@ -3,6 +3,8 @@ const ddb = new DynamoDBClient({region: 'us-west-1'})
 const {v4:uuidv4} = require('uuid')
 const Joi = require('joi')
 const TableName = 'MyHowm-Recipes'
+const uploader = require("../services/ImageUpload")
+const singleUpload = uploader.single("File")
 
 exports.index = async (req, res) => {
     const data = await ddb.send(new QueryCommand({
@@ -33,44 +35,63 @@ exports.index = async (req, res) => {
 }
 
 exports.store = async (req, res) => {
-    const body = req.body
-    const schema = Joi.object({
-        Name: Joi.string().required(),
-        Description: Joi.string().required()
-    })
-    const {error, value} = schema.validate(body)
-    if(error !== undefined) {
-        res.status(400).json({
-            status: 'failure',
-            message: error.message
-        })
-        return
-    }
-    const item = {
-        ID: {S: uuidv4()},
-        Name: {S: value.Name},
-        Description: {S: value.Description}
-    }
-    try {
-        await ddb.send(new PutItemCommand({
-            TableName: 'MyHowm-Recipes',
-            Item: item
-        }))
-        res.status(201).json({
-            status: 'success',
-            data: {
-                ID: item.ID.S,
-                Name: item.Name.S,
-                Description: item.Description.S
-            }
-        })
-    } catch (error) {
-        console.log(error)
-        res.status(500).json({
-            status: 'failure',
-            message: 'failed to create recipe'
-        })
-    }
+    // try {
+    //     await singleUpload(req, res, function(err) {
+    //         if (err) {
+    //             return res.status(400).json({
+    //                 status: 'failure',
+    //                 message: err.message
+    //             })
+    //         }
+    //         console.log(req.file.location)
+    //     })
+    // } catch (error) {
+    //     return res.status(400).json({
+    //         status: 'failure',
+    //         message: error.message
+    //     })
+    // }
+    res.status(200).json({status: 'success'})
+    // const body = req.body
+    // console.log(req)
+    // console.log(body)
+    // const schema = Joi.object({
+    //     Name: Joi.string().required(),
+    //     Description: Joi.string().required()
+    // })
+    // const {error, value} = schema.validate(body)
+    // if(error !== undefined) {
+    //     res.status(400).json({
+    //         status: 'failure',
+    //         message: error.message
+    //     })
+    //     return
+    // }
+    // const item = {
+    //     ID: {S: uuidv4()},
+    //     Name: {S: value.Name},
+    //     Description: {S: value.Description}
+    // }
+    // try {
+    //     await ddb.send(new PutItemCommand({
+    //         TableName: 'MyHowm-Recipes',
+    //         Item: item
+    //     }))
+    //     res.status(201).json({
+    //         status: 'success',
+    //         data: {
+    //             ID: item.ID.S,
+    //             Name: item.Name.S,
+    //             Description: item.Description.S
+    //         }
+    //     })
+    // } catch (error) {
+    //     console.log(error)
+    //     res.status(500).json({
+    //         status: 'failure',
+    //         message: 'failed to create recipe'
+    //     })
+    // }
 }
 
 exports.show = async (req, res) => {
