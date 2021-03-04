@@ -11,7 +11,7 @@ const ddb = new DynamoDBClient({region})
 const s3Client = new S3({region})
 
 exports.index = async (req, res) => {
-    const data = await ddb.send(new QueryCommand({
+    const result = await ddb.send(new QueryCommand({
         ProjectionExpression: "RecipeName, Description, Ingredients, Instructions, ImgSrc",
         TableName,
         KeyConditionExpression: "UserName = :UserName",
@@ -19,11 +19,14 @@ exports.index = async (req, res) => {
             ":UserName": {S: req.user.UserName}
         }
     }))
-    const items = data.Items.map(item => {
-        let Ingredients = {}
-        for (const ingredient in item.Ingredients.M) {
-            Ingredients[ingredient] = item.Ingredients.M[ingredient].S
-        }
+    const data = result.Items.map(item => {
+        const Ingredients = item.Ingredients.L.map(ingredient => {
+            return {
+                Quantity: ingredient.M.Quantity.S,
+                Unit: ingredient.M.Unit.S,
+                Ingredient: ingredient.M.Ingredient.S
+            }
+        })
         return {
             RecipeName: item.RecipeName.S,
             Description: item.Description.S,
@@ -32,10 +35,7 @@ exports.index = async (req, res) => {
             ImgSrc: item.ImgSrc.S,
         }
     })
-    res.status(200).json({
-        status: 'success',
-        data: items
-    })
+    res.status(200).json({status: 'success', data})
 }
 
 exports.imageUploadUrl = async (req, res) => {
@@ -86,27 +86,38 @@ exports.store = async (req, res) => {
         })
         return
     }
-            // RecipeName: item.RecipeName.S,
-            // Description: item.Description.S,
-            // Instructions: item.Instructions.L.map(i => i.S),
-            // Ingredients,
-            // ImgSrc: item.ImgSrc.S,
+    const Instructions = {L: 
+        value.Instructions.map(instruction => {
+            return {S: instruction}
+        })
+    }
+    const Ingredients = {L: 
+        value.Ingredients.map(ingredient => {
+            return {M: {
+                Quantity: {S: ingredient.Quantity},
+                Unit: {S: ingredient.Unit},
+                Ingredient: {S: ingredient.Ingredient}
+            }}
+        })
+    }
     const Item = {
         UserName: {S: req.user.UserName},
         RecipeName: {S: value.RecipeName},
         Description: {S: value.Description},
         ImgSrc: {S: value.ImgSrc},
-        //Instructions,
-        //Ingredients: 
+        Instructions,
+        Ingredients
     }
     try {
         await ddb.send(new PutItemCommand({TableName, Item}))
         res.status(201).json({
             status: 'success',
             data: {
-                ID: item.ID.S,
-                Name: item.Name.S,
-                Description: item.Description.S
+                RecipeName: value.RecipeName,
+                Description: value.Description,
+                ImgSrc: value.ImgSrc,
+                Instructions: value.Instructions,
+                Ingredients: value.Ingredients
             }
         })
     } catch (error) {
