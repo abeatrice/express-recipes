@@ -1,11 +1,17 @@
 const {DynamoDBClient, QueryCommand, PutItemCommand, GetItemCommand, DeleteItemCommand} = require('@aws-sdk/client-dynamodb')
-const ddb = new DynamoDBClient({region: 'us-west-1'})
-const {v4:uuidv4} = require('uuid')
+const {S3, PutObjectCommand} = require('@aws-sdk/client-s3')
+const {getSignedUrl} = require('@aws-sdk/s3-request-presigner')
+const { required } = require('joi')
 const Joi = require('joi')
+const {v4:uuidv4} = require('uuid')
+
+const region = 'us-west-1'
 const TableName = 'MyHowm-Recipes'
+const ddb = new DynamoDBClient({region})
+const s3Client = new S3({region})
 
 exports.index = async (req, res) => {
-    const data = await ddb.send(new QueryCommand({
+    const result = await ddb.send(new QueryCommand({
         ProjectionExpression: "RecipeName, Description, Ingredients, Instructions, ImgSrc",
         TableName,
         KeyConditionExpression: "UserName = :UserName",
@@ -13,11 +19,14 @@ exports.index = async (req, res) => {
             ":UserName": {S: req.user.UserName}
         }
     }))
-    const items = data.Items.map(item => {
-        let Ingredients = {}
-        for (const ingredient in item.Ingredients.M) {
-            Ingredients[ingredient] = item.Ingredients.M[ingredient].S
-        }
+    const data = result.Items.map(item => {
+        const Ingredients = item.Ingredients.L.map(ingredient => {
+            return {
+                Quantity: ingredient.M.Quantity.S,
+                Unit: ingredient.M.Unit.S,
+                Ingredient: ingredient.M.Ingredient.S
+            }
+        })
         return {
             RecipeName: item.RecipeName.S,
             Description: item.Description.S,
@@ -26,17 +35,48 @@ exports.index = async (req, res) => {
             ImgSrc: item.ImgSrc.S,
         }
     })
-    res.status(200).json({
-        status: 'success',
-        data: items
-    })
+    res.status(200).json({status: 'success', data})
+}
+
+exports.imageUploadUrl = async (req, res) => {
+    let name = req.query.name
+    let type = req.query.type
+    if(!name || !type) {
+        return res.status(400).json({
+            status: 'failure',
+            message: 'query parameters name & type are required'
+        })
+    }
+
+    try {
+        const command = new PutObjectCommand({
+            Bucket: 'myhowm.com-recipe-img',
+            Key: `${Math.ceil(Math.random() * 10 ** 10)}-${name}`,
+            ACL: 'public-read',
+            ContentType: type
+        })
+        const signedUrl = await getSignedUrl(s3Client, command, {expiresIn: 3600})
+        res.status(200).json({
+            status: 'success',
+            signedUrl
+        })
+    } catch (error) {
+        console.log(error)
+        res.status(400).json({
+            status: 'failure',
+            message: error
+        })
+    }
 }
 
 exports.store = async (req, res) => {
     const body = req.body
     const schema = Joi.object({
-        Name: Joi.string().required(),
-        Description: Joi.string().required()
+        RecipeName: Joi.string().required(),
+        Description: Joi.string().required(),
+        ImgSrc: Joi.string().required(),
+        Instructions: Joi.required(),
+        Ingredients: Joi.required()
     })
     const {error, value} = schema.validate(body)
     if(error !== undefined) {
@@ -46,22 +86,38 @@ exports.store = async (req, res) => {
         })
         return
     }
-    const item = {
-        ID: {S: uuidv4()},
-        Name: {S: value.Name},
-        Description: {S: value.Description}
+    const Instructions = {L: 
+        value.Instructions.map(instruction => {
+            return {S: instruction}
+        })
+    }
+    const Ingredients = {L: 
+        value.Ingredients.map(ingredient => {
+            return {M: {
+                Quantity: {S: ingredient.Quantity},
+                Unit: {S: ingredient.Unit},
+                Ingredient: {S: ingredient.Ingredient}
+            }}
+        })
+    }
+    const Item = {
+        UserName: {S: req.user.UserName},
+        RecipeName: {S: value.RecipeName},
+        Description: {S: value.Description},
+        ImgSrc: {S: value.ImgSrc},
+        Instructions,
+        Ingredients
     }
     try {
-        await ddb.send(new PutItemCommand({
-            TableName: 'MyHowm-Recipes',
-            Item: item
-        }))
+        await ddb.send(new PutItemCommand({TableName, Item}))
         res.status(201).json({
             status: 'success',
             data: {
-                ID: item.ID.S,
-                Name: item.Name.S,
-                Description: item.Description.S
+                RecipeName: value.RecipeName,
+                Description: value.Description,
+                ImgSrc: value.ImgSrc,
+                Instructions: value.Instructions,
+                Ingredients: value.Ingredients
             }
         })
     } catch (error) {
