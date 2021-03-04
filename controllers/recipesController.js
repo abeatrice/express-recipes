@@ -1,10 +1,13 @@
 const {DynamoDBClient, QueryCommand, PutItemCommand, GetItemCommand, DeleteItemCommand} = require('@aws-sdk/client-dynamodb')
-const ddb = new DynamoDBClient({region: 'us-west-1'})
-const {v4:uuidv4} = require('uuid')
+const {S3, PutObjectCommand} = require('@aws-sdk/client-s3')
+const {getSignedUrl} = require('@aws-sdk/s3-request-presigner')
 const Joi = require('joi')
+const {v4:uuidv4} = require('uuid')
+
+const region = 'us-west-1'
 const TableName = 'MyHowm-Recipes'
-const uploader = require("../services/ImageUpload")
-const singleUpload = uploader.single("File")
+const ddb = new DynamoDBClient({region})
+const s3Client = new S3({region})
 
 exports.index = async (req, res) => {
     const data = await ddb.send(new QueryCommand({
@@ -32,6 +35,37 @@ exports.index = async (req, res) => {
         status: 'success',
         data: items
     })
+}
+
+exports.imageUploadUrl = async (req, res) => {
+    let name = req.query.name
+    let type = req.query.type
+    if(!name || !type) {
+        return res.status(400).json({
+            status: 'failure',
+            message: 'query parameters name & type are required'
+        })
+    }
+
+    try {
+        const command = new PutObjectCommand({
+            Bucket: 'myhowm.com-recipe-img',
+            Key: `${Math.ceil(Math.random() * 10 ** 10)}-${name}`,
+            ACL: 'public-read',
+            ContentType: type
+        })
+        const signedUrl = await getSignedUrl(s3Client, command, {expiresIn: 3600})
+        res.status(200).json({
+            status: 'success',
+            signedUrl
+        })
+    } catch (error) {
+        console.log(error)
+        res.status(400).json({
+            status: 'failure',
+            message: error
+        })
+    }
 }
 
 exports.store = async (req, res) => {
