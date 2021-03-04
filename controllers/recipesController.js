@@ -1,6 +1,7 @@
 const {DynamoDBClient, QueryCommand, PutItemCommand, GetItemCommand, DeleteItemCommand} = require('@aws-sdk/client-dynamodb')
 const {S3, PutObjectCommand} = require('@aws-sdk/client-s3')
 const {getSignedUrl} = require('@aws-sdk/s3-request-presigner')
+const { required } = require('joi')
 const Joi = require('joi')
 const {v4:uuidv4} = require('uuid')
 
@@ -69,63 +70,52 @@ exports.imageUploadUrl = async (req, res) => {
 }
 
 exports.store = async (req, res) => {
-    // try {
-    //     await singleUpload(req, res, function(err) {
-    //         if (err) {
-    //             return res.status(400).json({
-    //                 status: 'failure',
-    //                 message: err.message
-    //             })
-    //         }
-    //         console.log(req.file.location)
-    //     })
-    // } catch (error) {
-    //     return res.status(400).json({
-    //         status: 'failure',
-    //         message: error.message
-    //     })
-    // }
-    res.status(200).json({status: 'success'})
-    // const body = req.body
-    // console.log(req)
-    // console.log(body)
-    // const schema = Joi.object({
-    //     Name: Joi.string().required(),
-    //     Description: Joi.string().required()
-    // })
-    // const {error, value} = schema.validate(body)
-    // if(error !== undefined) {
-    //     res.status(400).json({
-    //         status: 'failure',
-    //         message: error.message
-    //     })
-    //     return
-    // }
-    // const item = {
-    //     ID: {S: uuidv4()},
-    //     Name: {S: value.Name},
-    //     Description: {S: value.Description}
-    // }
-    // try {
-    //     await ddb.send(new PutItemCommand({
-    //         TableName: 'MyHowm-Recipes',
-    //         Item: item
-    //     }))
-    //     res.status(201).json({
-    //         status: 'success',
-    //         data: {
-    //             ID: item.ID.S,
-    //             Name: item.Name.S,
-    //             Description: item.Description.S
-    //         }
-    //     })
-    // } catch (error) {
-    //     console.log(error)
-    //     res.status(500).json({
-    //         status: 'failure',
-    //         message: 'failed to create recipe'
-    //     })
-    // }
+    const body = req.body
+    const schema = Joi.object({
+        RecipeName: Joi.string().required(),
+        Description: Joi.string().required(),
+        ImgSrc: Joi.string().required(),
+        Instructions: Joi.required(),
+        Ingredients: Joi.required()
+    })
+    const {error, value} = schema.validate(body)
+    if(error !== undefined) {
+        res.status(400).json({
+            status: 'failure',
+            message: error.message
+        })
+        return
+    }
+            // RecipeName: item.RecipeName.S,
+            // Description: item.Description.S,
+            // Instructions: item.Instructions.L.map(i => i.S),
+            // Ingredients,
+            // ImgSrc: item.ImgSrc.S,
+    const Item = {
+        UserName: {S: req.user.UserName},
+        RecipeName: {S: value.RecipeName},
+        Description: {S: value.Description},
+        ImgSrc: {S: value.ImgSrc},
+        //Instructions,
+        //Ingredients: 
+    }
+    try {
+        await ddb.send(new PutItemCommand({TableName, Item}))
+        res.status(201).json({
+            status: 'success',
+            data: {
+                ID: item.ID.S,
+                Name: item.Name.S,
+                Description: item.Description.S
+            }
+        })
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({
+            status: 'failure',
+            message: 'failed to create recipe'
+        })
+    }
 }
 
 exports.show = async (req, res) => {
